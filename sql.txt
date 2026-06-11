@@ -1,6 +1,37 @@
+CREATE TABLE settings (
+    sekolah_id VARCHAR(36) PRIMARY KEY,          -- UUID Sekolah asli dari Dapodik
+    nama_sekolah VARCHAR(150) NOT NULL,          -- Diambil dari "nama" (Contoh: 'SMP IBNU AQIL')
+    nss VARCHAR(25) NULL,
+    npsn VARCHAR(10) NOT NULL UNIQUE,
+    bentuk_pendidikan_id INT NULL,
+    bentuk_pendidikan_id_str VARCHAR(20) NULL,   -- Contoh: 'SMP'
+    status_sekolah INT NULL,
+    status_sekolah_str VARCHAR(20) NULL,         -- Contoh: 'Swasta'
+    alamat_jalan VARCHAR(255) NULL,
+    rt VARCHAR(5) NULL,
+    rw VARCHAR(5) NULL,
+    kode_wilayah VARCHAR(20) NULL,
+    kode_pos VARCHAR(10) NULL,
+    nomor_telepon VARCHAR(20) NULL,
+    nomor_fax VARCHAR(20) NULL,
+    email VARCHAR(100) NULL,
+    website VARCHAR(150) NULL,
+    is_sks TINYINT(1) DEFAULT 0,                 -- 1 = Ya, 0 = Tidak
+    lintang DECIMAL(10, 8) NULL,                 -- Format koordinat peta presisi
+    bujur DECIMAL(11, 8) NULL,                  -- Format koordinat peta presisi
+    dusun VARCHAR(100) NULL,
+    desa_kelurahan VARCHAR(100) NULL,
+    kecamatan VARCHAR(100) NULL,
+    kabupaten_kota VARCHAR(100) NULL,
+    provinsi VARCHAR(100) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE siswa (
-    nisn VARCHAR(10) PRIMARY KEY, -- Pengganti peserta_didik_id bawaan Dapodik
-    nipd VARCHAR(20) NOT NULL UNIQUE, -- Nomor Induk Peserta Didik (Nomor Induk Sekolah)
+    nisn VARCHAR(10) PRIMARY KEY, 
+    peserta_didik_id VARCHAR(36) NOT NULL UNIQUE, -- KUNCI UTAMA: Disisipkan untuk jembatan sync dengan anggota_rombel Dapodik
+    nipd VARCHAR(20) NOT NULL UNIQUE, 
     nik VARCHAR(16) NOT NULL UNIQUE,
     nama_lengkap VARCHAR(150) NOT NULL,
     jenis_kelamin ENUM('L', 'P') NOT NULL,
@@ -8,8 +39,8 @@ CREATE TABLE siswa (
     tanggal_lahir DATE,
     agama VARCHAR(30),
     anak_keberapa INT DEFAULT 1,
-    tinggi_badan INT DEFAULT 0, -- Dalam satuan cm
-    berat_badan INT DEFAULT 0,  -- Dalam satuan kg
+    tinggi_badan INT DEFAULT 0, 
+    berat_badan INT DEFAULT 0,  
     no_hp VARCHAR(20) NULL,
     email VARCHAR(100) NULL,
     status_siswa ENUM('Aktif', 'Lulus', 'Pindah', 'Keluar') DEFAULT 'Aktif',
@@ -20,27 +51,103 @@ CREATE TABLE siswa (
 CREATE TABLE siswa_orangtua (
     nisn VARCHAR(10) PRIMARY KEY,
     nama_ayah VARCHAR(150) NULL,
-    pekerjaan_ayah VARCHAR(100) NULL, -- Diambil dari pekerjaan_ayah_id_str
+    pekerjaan_ayah VARCHAR(100) NULL, 
     nama_ibu VARCHAR(150) NULL,
-    pekerjaan_ibu VARCHAR(100) NULL,  -- Diambil dari pekerjaan_ibu_id_str
+    pekerjaan_ibu VARCHAR(100) NULL,  
     nama_wali VARCHAR(150) NULL,
-    pekerjaan_wali VARCHAR(100) NULL, -- Diambil dari pekerjaan_wali_id_str
+    pekerjaan_wali VARCHAR(100) NULL, 
     FOREIGN KEY (nisn) REFERENCES siswa(nisn) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE siswa_registrasi (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nisn VARCHAR(10) NOT NULL,
-    registrasi_id VARCHAR(50) NOT NULL, -- ID registrasi unik asli dari Dapodik
-    jenis_pendaftaran VARCHAR(50), -- Diambil dari jenis_pendaftaran_id_str (misal: "Siswa baru")
+    registrasi_id VARCHAR(50) NOT NULL, 
+    jenis_pendaftaran VARCHAR(50), 
     tanggal_masuk_sekolah DATE,
     sekolah_asal VARCHAR(150),
-    nama_rombel VARCHAR(20), -- Contoh: "8 E"
-    semester_id VARCHAR(10), -- Contoh: "20252"
-    rombongan_belajar_id VARCHAR(50), -- ID Rombel asli Dapodik (berguna jika nanti butuh sync absen per kelas)
-    kurikulum_nama VARCHAR(100), -- Diambil dari kurikulum_id_str (misal: "Kurikulum SMP Merdeka")
+    nama_rombel VARCHAR(20), 
+    semester_id VARCHAR(10), 
+    rombongan_belajar_id VARCHAR(36), -- Disesuaikan jadi VARCHAR(36) agar match dengan tabel rombongan_belajar
+    kurikulum_nama VARCHAR(100), 
     FOREIGN KEY (nisn) REFERENCES siswa(nisn) ON DELETE CASCADE,
-    -- Mencegah duplikasi data registrasi siswa untuk semester yang sama
     UNIQUE KEY nisn_per_semester (nisn, semester_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE gtk (
+    ptk_terdaftar_id VARCHAR(36) PRIMARY KEY, -- UUID dari Dapodik
+    ptk_id VARCHAR(36) NOT NULL,
+    tahun_ajaran_id VARCHAR(4) NOT NULL,
+    ptk_induk TINYINT(1) DEFAULT 1,            -- 1 = Ya, 0 = Tidak
+    tanggal_surat_tugas DATE NULL,
+    nama VARCHAR(150) NOT NULL,
+    jenis_kelamin ENUM('L', 'P') NOT NULL,
+    tempat_lahir VARCHAR(100) NULL,
+    tanggal_lahir DATE NULL,
+    agama_id INT NULL,
+    agama_id_str VARCHAR(30) NULL,
+    nuptk VARCHAR(20) NULL,
+    nik VARCHAR(20) NULL UNIQUE,
+    jenis_ptk_id VARCHAR(10) NULL,
+    jenis_ptk_id_str VARCHAR(50) NULL,        -- Contoh: 'Guru'
+    jabatan_ptk_id VARCHAR(10) NULL,
+    jabatan_ptk_id_str VARCHAR(100) NULL,     -- Contoh: 'Guru Agama Islam'
+    status_kepegawaian_id INT NULL,
+    status_kepegawaian_id_str VARCHAR(50) NULL, -- Contoh: 'GTY/PTY'
+    nip VARCHAR(30) NULL,
+    pendidikan_terakhir VARCHAR(10) NULL,     -- Contoh: 'S1'
+    bidang_studi_terakhir VARCHAR(100) NULL,
+    pangkat_golongan_terakhir VARCHAR(20) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE gtk_riwayat_pendidikan (
+    riwayat_pendidikan_formal_id VARCHAR(36) PRIMARY KEY, -- UUID dari Dapodik
+    ptk_terdaftar_id VARCHAR(36) NOT NULL,                -- Relasi ke tabel gtk
+    satuan_pendidikan_formal VARCHAR(150) NULL,           -- Nama Kampus/Sekolah
+    fakultas VARCHAR(100) NULL,
+    kependidikan TINYINT(1) DEFAULT 1,
+    tahun_masuk VARCHAR(4) NULL,
+    tahun_lulus VARCHAR(4) NULL,
+    nim VARCHAR(50) NULL,
+    status_kuliah VARCHAR(5) NULL,
+    semester VARCHAR(5) NULL,
+    ipk DECIMAL(3,2) NULL,                                -- Format: 2.85, 4.00, dll
+    prodi VARCHAR(36) NULL,
+    id_reg_pd VARCHAR(36) NULL,
+    bidang_studi_id_str VARCHAR(100) NULL,
+    jenjang_pendidikan_id_str VARCHAR(20) NULL,           -- Contoh: 'S1'
+    gelar_akademik_id_str VARCHAR(100) NULL,              -- Contoh: 'Sarjana Pendidikan Islam'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ptk_terdaftar_id) REFERENCES gtk(ptk_terdaftar_id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE rombongan_belajar (
+    rombongan_belajar_id VARCHAR(36) PRIMARY KEY, -- UUID Kelas dari Dapodik
+    nama VARCHAR(50) NOT NULL,                    -- Contoh: '7 F'
+    tingkat_pendidikan_id VARCHAR(5) NOT NULL,    -- Contoh: '7'
+    tingkat_pendidikan_id_str VARCHAR(50) NULL,   -- Contoh: 'Kelas 7'
+    semester_id VARCHAR(10) NOT NULL,             -- Contoh: '20252'
+    jenis_rombel INT NULL,
+    jenis_rombel_str VARCHAR(50) NULL,            -- Contoh: 'Kelas'
+    kurikulum_id INT NULL,
+    kurikulum_id_str VARCHAR(100) NULL,           -- Contoh: 'Kurikulum SMP Merdeka'
+    id_ruang VARCHAR(36) NULL,
+    id_ruang_str VARCHAR(50) NULL,                -- Contoh: 'Ruang 7.F'
+    moving_class VARCHAR(10) DEFAULT 'Tidak',
+    ptk_id VARCHAR(36) NULL,                      -- ID Wali Kelas (Relasi ke ptk_id/ID GTK)
+    ptk_id_str VARCHAR(150) NULL,                 -- Nama Wali Kelas (Contoh: 'SITI JUBAIDAH')
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE anggota_rombel (
+    anggota_rombel_id VARCHAR(36) PRIMARY KEY, -- UUID Anggota dari Dapodik
+    rombongan_belajar_id VARCHAR(36) NOT NULL, -- Relasi ke tabel rombongan_belajar
+    peserta_didik_id VARCHAR(36) NOT NULL,     -- ID Siswa (Nanti berelasi ke tabel peserta_didik)
+    jenis_pendaftaran_id VARCHAR(5) NULL,
+    jenis_pendaftaran_id_str VARCHAR(50) NULL, -- Contoh: 'Lanjutan semester'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (rombongan_belajar_id) REFERENCES rombongan_belajar(rombongan_belajar_id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
