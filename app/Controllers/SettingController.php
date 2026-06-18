@@ -60,7 +60,9 @@ class SettingController extends BaseController
     public function getSyncHistory()
     {
             
-            $sync_logs = $this->db->table('sync_logs')->get()->getResult();
+            $sync_logs = $this->db->table('sync_logs')
+                        ->orderBy("created_at","DESC")
+                        ->get()->getResult();
             
             return $this->respond([
                 'status' => 'success',

@@ -14,6 +14,13 @@ class DapodikController extends BaseController
     public function __construct()
     {
         $this->db = \Config\Database::connect();
+        // Validasi manual di awal method Controller jika filter belum siap
+        if (!in_array(session()->get('role_id'), [1, 2])) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Anda tidak memiliki hak akses untuk membuka data Master Dapodik.'
+            ])->setStatusCode(403);
+        }
     }
 
     /**
