@@ -146,7 +146,12 @@ class UserSettingController extends BaseController
     public function getRolePermissions($roleId)
     {
         // 1. Ambil semua menu terdaftar di sistem
-        $allMenus = $this->db->table('menus')->get()->getResultArray();
+        $allMenus = $this->db->table('menus')
+                ->orderBy('COALESCE(parent_id, id)', 'ASC', false) // false agar CI4 tidak menambahkan backtick kaku (`) pada fungsi COALESCE
+                ->orderBy('CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END', 'ASC', false)
+                ->orderBy('urutan', 'ASC')
+                ->get()
+                ->getResultArray();
         
         // 2. Ambil id menu yang diizinkan untuk role ini dari tabel pivot role_menu
         $allowedMenusRaw = $this->db->table('role_menu')
